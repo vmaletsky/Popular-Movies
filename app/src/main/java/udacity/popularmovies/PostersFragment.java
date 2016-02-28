@@ -1,14 +1,16 @@
 package udacity.popularmovies;
 
+import android.app.Fragment;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
-import android.app.Fragment;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import java.util.ArrayList;
 
 
 /**
@@ -31,22 +33,15 @@ public class PostersFragment extends Fragment {
 
     private OnFragmentInteractionListener mListener;
 
+    private RecyclerView mPostersView;
+
     public PostersFragment() {
         // Required empty public constructor
     }
 
-    /**
-     * Use this factory method to create a new instance of
-     * this fragment using the provided parameters.
-     *
-     * @param param1 Parameter 1.
-     * @param param2 Parameter 2.
-     * @return A new instance of fragment FragmentPosters.
-     */
-    // TODO: Rename and change types and number of parameters
+
     public static PostersFragment newInstance() {
-        PostersFragment fragment = new PostersFragment();
-        return fragment;
+        return new PostersFragment();
     }
 
     @Override
@@ -63,10 +58,14 @@ public class PostersFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_posters, container, false);
-        RecyclerView postersView = (RecyclerView) rootView.findViewById(R.id.postersView);
-        postersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 3));
-        postersView.setHasFixedSize(true);
-        postersView.setAdapter();
+        mPostersView = (RecyclerView) rootView.findViewById(R.id.postersView);
+        mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 3));
+        mPostersView.setHasFixedSize(true);
+        ArrayList<String> list = new ArrayList<>();
+        for (int i = 0; i<20; i++) {
+            list.add("Item " + i);
+        }
+        mPostersView.setAdapter(new PostersAdapter(rootView.getContext(), list));
         return rootView;
     }
 

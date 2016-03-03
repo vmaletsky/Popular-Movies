@@ -1,6 +1,5 @@
 package udacity.popularmovies;
 
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 
@@ -18,14 +17,4 @@ public class MainActivity extends AppCompatActivity {
                     .commit();
         }
     }
-
-
-    class FetchMovieData extends AsyncTask {
-        public String[] doInBackground(Object... params) {
-
-            return null;
-        }
-    }
-
-
 }

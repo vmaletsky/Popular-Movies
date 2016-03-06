@@ -2,6 +2,7 @@ package udacity.popularmovies;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -9,6 +10,8 @@ import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -22,7 +25,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.ArrayList;
+import java.util.Arrays;
 
 
 /**
@@ -47,8 +50,19 @@ public class PostersFragment extends Fragment {
 
     private RecyclerView mPostersView;
 
+    private PostersAdapter mPostersAdapter;
+
     public PostersFragment() {
         // Required empty public constructor
+    }
+    
+    public static PostersFragment newInstance() {
+        
+        Bundle args = new Bundle();
+        
+        PostersFragment fragment = new PostersFragment();
+        fragment.setArguments(args);
+        return fragment;
     }
 
     @Override
@@ -58,22 +72,26 @@ public class PostersFragment extends Fragment {
         fetchMovies();
     }
 
-    public static PostersFragment newInstance() {
-        return new PostersFragment();
-    }
-
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        setHasOptionsMenu(true);
         if (getArguments() != null) {
             mParam1 = getArguments().getString(ARG_PARAM1);
             mParam2 = getArguments().getString(ARG_PARAM2);
         }
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        inflater.inflate(R.menu.main, menu);
+        super.onCreateOptionsMenu(menu, inflater);
+    }
+
     private void fetchMovies() {
         FetchMovieData movieData = new FetchMovieData();
-        movieData.execute();
+        String sortBy = "popularity.desc";
+        movieData.execute(sortBy);
     }
 
     @Override
@@ -82,13 +100,13 @@ public class PostersFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_posters, container, false);
         mPostersView = (RecyclerView) rootView.findViewById(R.id.postersView);
-        mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 3));
+        if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+            mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 2));
+        else
+            mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 4));
         mPostersView.setHasFixedSize(true);
-        ArrayList<String> list = new ArrayList<>();
-        for (int i = 0; i<20; i++) {
-            list.add("Item " + i);
-        }
-        mPostersView.setAdapter(new PostersAdapter(rootView.getContext(), list));
+        mPostersAdapter = new PostersAdapter(rootView.getContext());
+        mPostersView.setAdapter(mPostersAdapter);
         return rootView;
     }
 
@@ -131,11 +149,11 @@ public class PostersFragment extends Fragment {
         void onFragmentInteraction(Uri uri);
     }
 
-    class FetchMovieData extends AsyncTask {
+    class FetchMovieData extends AsyncTask<String, Void, Movie[]> {
         String TAG = this.getClass().getSimpleName();
 
 
-        public String[] getMoviesDataFromJson(String json) throws JSONException {
+        public Movie[] getMoviesDataFromJson(String json) throws JSONException {
             final String PAGE = "page";
             final String RESULTS = "results";
             final String POSTER_PATH = "poster_path";
@@ -144,22 +162,41 @@ public class PostersFragment extends Fragment {
             final String TITLE = "title";
 
             JSONObject moviesJson = new JSONObject(json);
-            JSONArray resultsArray = moviesJson.getJSONArray(RESULTS);
-
-            return null;
+            JSONArray moviesArray = moviesJson.getJSONArray(RESULTS);
+            Movie[] movies = new Movie[moviesArray.length()];
+            for (int i=0; i<moviesArray.length(); i++) {
+                JSONObject movieObject = moviesArray.getJSONObject(i);
+                String id = movieObject.getString(ID);
+                String posterPath = movieObject.getString(POSTER_PATH);
+                Movie m = new Movie(id, posterPath);
+                Log.v(TAG, "Movie id : " + id + " Poster path : " + posterPath);
+                movies[i] = m;
+            }
+            return movies;
         }
 
-        public String[] doInBackground(Object... params) {
-
+        @Override
+        public Movie[] doInBackground(String... params) {
+            if (params.length < 1) {
+                return null;
+            }
             HttpURLConnection urlConnection = null;
             BufferedReader reader = null;
             String moviesJsonStr = null;
-            final String baseUrl =
-                    "http://api.themoviedb.org/3/discover/movie?sort_by=popularity.desc&api_key=" + BuildConfig.TMDB_API_KEY;
-            Uri builtUri = Uri.parse(baseUrl);
+
 
             try {
+
+                final String SORT_BY_PARAM="sort_by";
+                final String API_KEY_PARAM="api_key";
+                final String baseUrl =
+                        "http://api.themoviedb.org/3/discover/movie";
+                Uri builtUri = Uri.parse(baseUrl).buildUpon()
+                        .appendQueryParameter(SORT_BY_PARAM, params[0])
+                        .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
+                        .build();
                 URL url = new URL(builtUri.toString());
+
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -187,7 +224,22 @@ public class PostersFragment extends Fragment {
             } catch (IOException e) {
                 Log.e(TAG, "Shit happened " + e);
             }
+
+            try {
+                return getMoviesDataFromJson(moviesJsonStr);
+            } catch (JSONException e) {
+                Log.e(TAG, "Something went wrong with JSON : " + e);
+            }
             return null;
+        }
+
+        @Override
+        protected void onPostExecute(Movie[] movies) {
+            if (movies != null) {
+                mPostersAdapter.setValues(Arrays.asList(movies));
+                super.onPostExecute(movies);
+            }
+
         }
     }
 }

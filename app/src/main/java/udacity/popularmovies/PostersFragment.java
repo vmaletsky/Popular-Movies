@@ -2,16 +2,20 @@ package udacity.popularmovies;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -52,6 +56,8 @@ public class PostersFragment extends Fragment {
 
     private PostersAdapter mPostersAdapter;
 
+    private Context mContext;
+
     public PostersFragment() {
         // Required empty public constructor
     }
@@ -90,7 +96,8 @@ public class PostersFragment extends Fragment {
 
     private void fetchMovies() {
         FetchMovieData movieData = new FetchMovieData();
-        String sortBy = "popularity.desc";
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+        String sortBy = prefs.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_by_popularity_value));
         movieData.execute(sortBy);
     }
 
@@ -105,8 +112,8 @@ public class PostersFragment extends Fragment {
         else
             mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 4));
         mPostersView.setHasFixedSize(true);
-        mPostersAdapter = new PostersAdapter(rootView.getContext());
-        mPostersView.setAdapter(mPostersAdapter);
+        mContext = rootView.getContext();
+
         return rootView;
     }
 
@@ -190,13 +197,12 @@ public class PostersFragment extends Fragment {
                 final String SORT_BY_PARAM="sort_by";
                 final String API_KEY_PARAM="api_key";
                 final String baseUrl =
-                        "http://api.themoviedb.org/3/discover/movie";
+                        "http://api.themoviedb.org/3/movie/" + params[0];
                 Uri builtUri = Uri.parse(baseUrl).buildUpon()
-                        .appendQueryParameter(SORT_BY_PARAM, params[0])
                         .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
                         .build();
                 URL url = new URL(builtUri.toString());
-
+                Log.v(TAG, "URL TMDB : " + url);
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -222,7 +228,7 @@ public class PostersFragment extends Fragment {
                 moviesJsonStr = buffer.toString();
                 Log.v(TAG, "Received movies list : " + moviesJsonStr);
             } catch (IOException e) {
-                Log.e(TAG, "Shit happened " + e);
+                Log.e(TAG, "Receiving movies list error : " + e);
             }
 
             try {
@@ -236,7 +242,8 @@ public class PostersFragment extends Fragment {
         @Override
         protected void onPostExecute(Movie[] movies) {
             if (movies != null) {
-                mPostersAdapter.setValues(Arrays.asList(movies));
+                mPostersAdapter = new PostersAdapter(mContext, Arrays.asList(movies));
+                mPostersView.setAdapter(mPostersAdapter);
                 super.onPostExecute(movies);
             }
 

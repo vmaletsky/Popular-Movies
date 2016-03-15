@@ -8,6 +8,10 @@ public class Movie {
 
     public String posterPath;
 
+    public String title;
+
+    public String overview;
+
     public Movie(String _id, String _posterPath) {
         this.id = _id;
         this.posterPath = _posterPath;

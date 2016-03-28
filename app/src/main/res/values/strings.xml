@@ -17,12 +17,15 @@
 
     <string name="pref_sort_by_rating_value">top_rated</string>
 
+    <string name="posters_base_url">http://image.tmdb.org/t/p/w500/</string>
+    <string name="movie_fetch_base_url">"http://api.themoviedb.org/3/movie/"</string>
+
     <!-- Strings related to Settings -->
 
     <!-- Example General settings -->
     <string name="pref_header_general">General</string>
 
 
-    <string name="title_activity_details">DetailsActivity</string>
+    <string name="title_activity_details">Movie Details</string>
     <string name="action_settings">Settings</string>
 </resources>

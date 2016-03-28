@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.net.Uri;
-import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
@@ -15,7 +14,6 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
-import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 
@@ -29,6 +27,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Arrays;
 
 
@@ -41,20 +40,11 @@ import java.util.Arrays;
  * create an instance of this fragment.
  */
 public class PostersFragment extends Fragment {
-    // TODO: Rename parameter arguments, choose names that match
-    // the fragment initialization parameters, ex.g. ARG_ITEM_NUMBER
-    private static final String ARG_PARAM1 = "param1";
-    private static final String ARG_PARAM2 = "param2";
-
-    // TODO: Rename and change types of parameters
-    private String mParam1;
-    private String mParam2;
-
     private OnFragmentInteractionListener mListener;
 
     private RecyclerView mPostersView;
 
-    private PostersAdapter mPostersAdapter;
+    private MoviesAdapter mMoviesAdapter;
 
     private Context mContext;
 
@@ -82,10 +72,7 @@ public class PostersFragment extends Fragment {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setHasOptionsMenu(true);
-        if (getArguments() != null) {
-            mParam1 = getArguments().getString(ARG_PARAM1);
-            mParam2 = getArguments().getString(ARG_PARAM2);
-        }
+
     }
 
     @Override
@@ -97,7 +84,7 @@ public class PostersFragment extends Fragment {
     private void fetchMovies() {
         FetchMovieData movieData = new FetchMovieData();
         SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sortBy = prefs.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_by_popularity_value));
+        String sortBy = prefs.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_by_rating_value));
         movieData.execute(sortBy);
     }
 
@@ -107,13 +94,23 @@ public class PostersFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_posters, container, false);
         mPostersView = (RecyclerView) rootView.findViewById(R.id.postersView);
-        if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-            mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 2));
-        else
-            mPostersView.setLayoutManager(new GridLayoutManager(rootView.getContext(), 4));
-        mPostersView.setHasFixedSize(true);
-        mContext = rootView.getContext();
 
+        mPostersView.setHasFixedSize(true);
+        mPostersView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+
+            }
+        });
+        mContext = rootView.getContext();
+        mMoviesAdapter = new MoviesAdapter(mContext);
+        mPostersView.setAdapter(mMoviesAdapter);
+        if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
+            mPostersView.setLayoutManager(new GridLayoutManager(mContext, 2));
+        else
+            mPostersView.setLayoutManager(new GridLayoutManager(mContext, 4));
         return rootView;
     }
 
@@ -165,8 +162,10 @@ public class PostersFragment extends Fragment {
             final String RESULTS = "results";
             final String POSTER_PATH = "poster_path";
             final String ID = "id";
-            final String ORIGINAL_TITLE = "original_title";
+            final String OVERVIEW = "overview";
             final String TITLE = "title";
+            final String RELEASE_DATE = "release_date";
+            final String VOTE_AVERAGE = "vote_average";
 
             JSONObject moviesJson = new JSONObject(json);
             JSONArray moviesArray = moviesJson.getJSONArray(RESULTS);
@@ -175,8 +174,19 @@ public class PostersFragment extends Fragment {
                 JSONObject movieObject = moviesArray.getJSONObject(i);
                 String id = movieObject.getString(ID);
                 String posterPath = movieObject.getString(POSTER_PATH);
-                Movie m = new Movie(id, posterPath);
-                Log.v(TAG, "Movie id : " + id + " Poster path : " + posterPath);
+                String title = movieObject.getString(TITLE);
+                String overview = movieObject.getString(OVERVIEW);
+                String releaseDate = movieObject.getString(RELEASE_DATE);
+                double voteAverage = movieObject.getDouble(VOTE_AVERAGE);
+
+                Movie m = new Movie();
+                m.id = id;
+                m.posterPath = posterPath;
+                m.title = title;
+                m.overview = overview;
+                m.releaseDate = releaseDate;
+                m.voteAverage = voteAverage;
+                m.runtime = 0;
                 movies[i] = m;
             }
             return movies;
@@ -187,22 +197,19 @@ public class PostersFragment extends Fragment {
             if (params.length < 1) {
                 return null;
             }
-            HttpURLConnection urlConnection = null;
-            BufferedReader reader = null;
+            HttpURLConnection urlConnection;
+            BufferedReader reader;
             String moviesJsonStr = null;
 
 
             try {
-
-                final String SORT_BY_PARAM="sort_by";
                 final String API_KEY_PARAM="api_key";
                 final String baseUrl =
-                        "http://api.themoviedb.org/3/movie/" + params[0];
+                        getString(R.string.movie_fetch_base_url) + params[0];
                 Uri builtUri = Uri.parse(baseUrl).buildUpon()
                         .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
                         .build();
                 URL url = new URL(builtUri.toString());
-                Log.v(TAG, "URL TMDB : " + url);
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -226,7 +233,6 @@ public class PostersFragment extends Fragment {
                     return null;
                 }
                 moviesJsonStr = buffer.toString();
-                Log.v(TAG, "Received movies list : " + moviesJsonStr);
             } catch (IOException e) {
                 Log.e(TAG, "Receiving movies list error : " + e);
             }
@@ -242,8 +248,9 @@ public class PostersFragment extends Fragment {
         @Override
         protected void onPostExecute(Movie[] movies) {
             if (movies != null) {
-                mPostersAdapter = new PostersAdapter(mContext, Arrays.asList(movies));
-                mPostersView.setAdapter(mPostersAdapter);
+                ArrayList<Movie> moviesList = new ArrayList<>(Arrays.asList(movies));
+                mMoviesAdapter.addAll(moviesList);
+                mMoviesAdapter.notifyDataSetChanged();
                 super.onPostExecute(movies);
             }
 

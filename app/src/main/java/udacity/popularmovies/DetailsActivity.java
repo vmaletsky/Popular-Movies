@@ -11,6 +11,11 @@ public class DetailsActivity extends AppCompatActivity {
         setContentView(R.layout.activity_details);
         //   Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         //   setSupportActionBar(toolbar);
+        DetailsFragment fragment = new DetailsFragment();
+
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.movie_details_container, fragment)
+                .commit();
     }
 
 }

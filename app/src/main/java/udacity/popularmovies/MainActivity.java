@@ -6,18 +6,28 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
 
+import butterknife.ButterKnife;
+
 public class MainActivity extends AppCompatActivity implements PostersFragment.OnFragmentInteractionListener {
 
-
+    protected boolean mTwoPane;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ButterKnife.bind(this);
         setContentView(R.layout.activity_main);
-        if (savedInstanceState == null) {
-            getFragmentManager().beginTransaction()
-                    .add(R.id.container, new PostersFragment())
-                    .commit();
+        if (findViewById(R.id.movie_details_container) != null) {
+            mTwoPane = true;
+
+            if (savedInstanceState == null) {
+                getSupportFragmentManager().beginTransaction()
+                        .replace(R.id.movie_details_container, new DetailsFragment())
+                        .commit();
+            }
+        } else {
+            mTwoPane = false;
+
         }
     }
 
@@ -38,4 +48,5 @@ public class MainActivity extends AppCompatActivity implements PostersFragment.O
 
         return super.onOptionsItemSelected(item);
     }
+
 }

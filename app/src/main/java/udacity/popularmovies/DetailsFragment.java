@@ -16,16 +16,24 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 /**
  * A placeholder fragment containing a simple view.
  */
-public class DetailsActivityFragment extends Fragment {
+public class DetailsFragment extends Fragment {
 
     private Movie mMovie;
 
     private String LOG_TAG = getClass().getSimpleName();
+    @Bind(R.id.movie_title)         protected TextView movieTitle;
+    @Bind(R.id.movie_overview)      protected TextView overview;
+    @Bind(R.id.poster)              protected ImageView posterView;
+    @Bind(R.id.release_date)        protected TextView releaseDateView;
+    @Bind(R.id.vote_average)        protected TextView voteAverageView;
 
-    public DetailsActivityFragment() {
+    public DetailsFragment() {
     }
 
     @Override
@@ -33,14 +41,10 @@ public class DetailsActivityFragment extends Fragment {
                              Bundle savedInstanceState) {
 
         View rootView = inflater.inflate(R.layout.fragment_details, container, false);
+        ButterKnife.bind(this, rootView);
 
         mMovie = getActivity().getIntent().getParcelableExtra("MOVIE");
 
-        TextView movieTitle = (TextView) rootView.findViewById(R.id.movie_title);
-        TextView overview = (TextView) rootView.findViewById(R.id.movie_overview);
-        ImageView posterView = (ImageView) rootView.findViewById(R.id.poster);
-        TextView releaseDateView = (TextView) rootView.findViewById(R.id.release_date);
-        TextView voteAverageView = (TextView) rootView.findViewById(R.id.vote_average);
 
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         Date releaseDate;

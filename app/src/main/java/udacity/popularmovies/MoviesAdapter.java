@@ -14,6 +14,9 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 import java.util.List;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
+
 /**
  * Created by Volodymyr on 2/28/2016.
  */
@@ -21,6 +24,8 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
     private List<Movie> mValues;
     private Context mContext;
     private final TypedValue mTypedValue = new TypedValue();
+
+    private String postersBaseUrl;
 
     private String TAG = getClass().getSimpleName();
 
@@ -36,11 +41,12 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
         context.getTheme().resolveAttribute(R.attr.selectableItemBackground, mTypedValue, true);
         mContext = context;
         mValues = new ArrayList<>();
+        postersBaseUrl = this.mContext.getString(R.string.posters_base_url);
     }
 
     @Override
     public void onBindViewHolder(final MoviesAdapter.ViewHolder holder, final int position) {
-        String url = mContext.getString(R.string.posters_base_url) + mValues.get(position).posterPath;
+        String url = postersBaseUrl + mValues.get(position).posterPath;
         holder.mImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -65,11 +71,11 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
     }
 
     public static final class ViewHolder extends RecyclerView.ViewHolder {
-        public final ImageView mImageView;
+        @Bind(R.id.poster_image) public ImageView mImageView;
 
         public ViewHolder(View itemView) {
             super(itemView);
-            mImageView = (ImageView) itemView.findViewById(R.id.poster_image);
+            ButterKnife.bind(this, itemView);
         }
 
     }

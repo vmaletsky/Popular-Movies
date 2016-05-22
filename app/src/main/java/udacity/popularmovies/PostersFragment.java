@@ -30,6 +30,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import butterknife.Bind;
+import butterknife.ButterKnife;
 
 /**
  * A simple {@link Fragment} subclass.
@@ -42,7 +44,7 @@ import java.util.Arrays;
 public class PostersFragment extends Fragment {
     private OnFragmentInteractionListener mListener;
 
-    private RecyclerView mPostersView;
+    @Bind(R.id.posters_view)    protected RecyclerView mPostersView;
 
     private MoviesAdapter mMoviesAdapter;
 
@@ -93,9 +95,9 @@ public class PostersFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_posters, container, false);
-        mPostersView = (RecyclerView) rootView.findViewById(R.id.postersView);
-
+        ButterKnife.bind(this, rootView);
         mPostersView.setHasFixedSize(true);
+        mPostersView.setItemViewCacheSize(10);
         mPostersView.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {

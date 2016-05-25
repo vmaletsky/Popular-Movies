@@ -3,6 +3,7 @@ package udacity.popularmovies;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -27,7 +28,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
 
     private String postersBaseUrl;
 
-    private String TAG = getClass().getSimpleName();
+    private String LOG_TAG = getClass().getSimpleName();
 
     public boolean add(Movie m) {
         return mValues.add(m);
@@ -50,9 +51,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
         holder.mImageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(mContext, DetailsActivity.class);
-                intent.putExtra("MOVIE", mValues.get(position));
-                mContext.startActivity(intent);
+                ((PostersFragment.Callback) mContext).onItemSelected(mValues.get(position));
             }
         });
         Picasso.with(mContext).load(url).into(holder.mImageView);

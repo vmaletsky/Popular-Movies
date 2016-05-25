@@ -42,6 +42,9 @@ import butterknife.ButterKnife;
  * create an instance of this fragment.
  */
 public class PostersFragment extends Fragment {
+    public interface Callback {
+        public void onItemSelected(Movie m);
+    }
     private OnFragmentInteractionListener mListener;
 
     @Bind(R.id.posters_view)    protected RecyclerView mPostersView;

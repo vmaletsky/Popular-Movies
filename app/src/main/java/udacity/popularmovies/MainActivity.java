@@ -1,5 +1,6 @@
 package udacity.popularmovies;
 
+import android.app.IntentService;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
@@ -8,7 +9,26 @@ import android.view.MenuItem;
 
 import butterknife.ButterKnife;
 
-public class MainActivity extends AppCompatActivity implements PostersFragment.OnFragmentInteractionListener {
+public class MainActivity extends AppCompatActivity implements PostersFragment.OnFragmentInteractionListener,
+        PostersFragment.Callback {
+    @Override
+    public void onItemSelected(Movie m) {
+        if (mTwoPane) {
+            Bundle args = new Bundle();
+            args.putParcelable("Movie", m);
+
+            DetailsFragment fragment = new DetailsFragment();
+            fragment.setArguments(args);
+
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.movie_details_container, fragment)
+                    .commit();
+        } else {
+            Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
+            intent.putExtra("Movie", m);
+            startActivity(intent);
+        }
+    }
 
     protected boolean mTwoPane;
 
@@ -35,6 +55,7 @@ public class MainActivity extends AppCompatActivity implements PostersFragment.O
     public void onFragmentInteraction(Uri uri) {
 
     }
+
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

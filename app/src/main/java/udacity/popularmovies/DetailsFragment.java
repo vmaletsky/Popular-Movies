@@ -45,7 +45,6 @@ public class DetailsFragment extends Fragment {
 
         mMovie = getActivity().getIntent().getParcelableExtra("MOVIE");
 
-
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
         Date releaseDate;
         Calendar c = Calendar.getInstance();

@@ -1,34 +1,15 @@
 package udacity.popularmovies;
 
-import android.app.IntentService;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.MenuItem;
 
 import butterknife.ButterKnife;
 
-public class MainActivity extends AppCompatActivity implements PostersFragment.OnFragmentInteractionListener,
-        PostersFragment.Callback {
-    @Override
-    public void onItemSelected(Movie m) {
-        if (mTwoPane) {
-            Bundle args = new Bundle();
-            args.putParcelable("Movie", m);
-
-            DetailsFragment fragment = new DetailsFragment();
-            fragment.setArguments(args);
-
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.movie_details_container, fragment)
-                    .commit();
-        } else {
-            Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
-            intent.putExtra("Movie", m);
-            startActivity(intent);
-        }
-    }
+public class MainActivity extends AppCompatActivity implements PostersFragment.Callback {
+    private String LOG_TAG = getClass().getSimpleName();
 
     protected boolean mTwoPane;
 
@@ -52,12 +33,6 @@ public class MainActivity extends AppCompatActivity implements PostersFragment.O
     }
 
     @Override
-    public void onFragmentInteraction(Uri uri) {
-
-    }
-
-
-    @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
@@ -70,4 +45,23 @@ public class MainActivity extends AppCompatActivity implements PostersFragment.O
         return super.onOptionsItemSelected(item);
     }
 
+    @Override
+    public void onItemSelected(Movie movie) {
+        Log.v(LOG_TAG, "onItemSelected");
+        if (mTwoPane) {
+            Bundle args = new Bundle();
+            args.putParcelable("MOVIE", movie);
+
+            DetailsFragment fragment = new DetailsFragment();
+            fragment.setArguments(args);
+
+            getSupportFragmentManager().beginTransaction()
+                    .add(R.id.movie_details_container, fragment)
+                    .commit();
+        } else {
+            Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
+            intent.putExtra("MOVIE", movie);
+            startActivity(intent);
+        }
+    }
 }

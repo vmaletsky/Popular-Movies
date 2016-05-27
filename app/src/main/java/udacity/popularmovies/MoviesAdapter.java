@@ -1,9 +1,7 @@
 package udacity.popularmovies;
 
 import android.content.Context;
-import android.content.Intent;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -44,6 +42,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
         mValues = new ArrayList<>();
         postersBaseUrl = this.mContext.getString(R.string.posters_base_url);
     }
+
 
     @Override
     public void onBindViewHolder(final MoviesAdapter.ViewHolder holder, final int position) {

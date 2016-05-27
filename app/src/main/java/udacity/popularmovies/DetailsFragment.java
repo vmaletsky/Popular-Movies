@@ -42,27 +42,27 @@ public class DetailsFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_details, container, false);
         ButterKnife.bind(this, rootView);
+        Bundle arguments = getArguments();
+        if (arguments != null) {
+            mMovie = arguments.getParcelable("MOVIE");
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+            Date releaseDate;
+            Calendar c = Calendar.getInstance();
+            try {
+                releaseDate = sdf.parse(mMovie.releaseDate);
+                c.setTime(releaseDate);
 
-        mMovie = getActivity().getIntent().getParcelableExtra("MOVIE");
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-        Date releaseDate;
-        Calendar c = Calendar.getInstance();
-        try {
-            releaseDate = sdf.parse(mMovie.releaseDate);
-            c.setTime(releaseDate);
-
-        } catch (ParseException e) {
-            Log.e(LOG_TAG, "ParseException: Wrong release date : " + e);
+            } catch (ParseException e) {
+                Log.e(LOG_TAG, "ParseException: Wrong release date : " + e);
+            }
+            movieTitle.setText(mMovie.title);
+            overview.setText(mMovie.overview);
+            String year = String.valueOf(c.get(Calendar.YEAR));
+            releaseDateView.setText(year);
+            voteAverageView.setText(mMovie.voteAverage + "/10");
+            String url = getString(R.string.posters_base_url) + mMovie.posterPath;
+            Picasso.with(getContext()).load(url).into(posterView);
         }
-        movieTitle.setText(mMovie.title);
-        overview.setText(mMovie.overview);
-        String year = String.valueOf(c.get(Calendar.YEAR));
-        releaseDateView.setText(year);
-        voteAverageView.setText(mMovie.voteAverage + "/10");
-        String url = getString(R.string.posters_base_url) + mMovie.posterPath;
-        Picasso.with(getContext()).load(url).into(posterView);
-
         return rootView;
     }
 }

@@ -64,7 +64,6 @@ public class DetailsFragment extends Fragment {
         voteAverageView.setText(mMovie.voteAverage + "/10");
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
-
         return rootView;
     }
 }

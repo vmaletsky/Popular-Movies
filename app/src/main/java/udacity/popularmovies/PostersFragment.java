@@ -36,11 +36,10 @@ import butterknife.ButterKnife;
 
 public class PostersFragment extends Fragment {
     public interface Callback {
-        public void onItemSelected(Movie m);
+        void onItemSelected(Movie m);
     }
 
     private String LOG_TAG = getClass().getSimpleName();
-
     @Bind(R.id.posters_view)    protected RecyclerView mPostersView;
 
     private MoviesAdapter mMoviesAdapter;

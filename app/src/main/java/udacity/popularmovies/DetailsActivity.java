@@ -14,10 +14,10 @@ public class DetailsActivity extends AppCompatActivity {
         DetailsFragment fragment = new DetailsFragment();
 
         Bundle arguments = new Bundle();
-        arguments.putParcelable("MOVIE", getIntent().getData());
+        arguments.putParcelable(Movie.MOVIE, getIntent().getData());
 
         fragment.setArguments(arguments);
-        getSupportFragmentManager().beginTransaction()
+        getFragmentManager().beginTransaction()
                 .add(R.id.movie_details_container, fragment)
                 .commit();
     }

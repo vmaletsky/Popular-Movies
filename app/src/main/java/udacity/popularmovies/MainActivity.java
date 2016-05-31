@@ -9,23 +9,21 @@ import android.view.MenuItem;
 
 import butterknife.ButterKnife;
 
-public class MainActivity extends AppCompatActivity implements PostersFragment.OnFragmentInteractionListener,
+public class MainActivity extends AppCompatActivity implements
         PostersFragment.Callback {
     @Override
     public void onItemSelected(Movie m) {
         if (mTwoPane) {
             Bundle args = new Bundle();
-            args.putParcelable("Movie", m);
-
+            args.putParcelable(Movie.MOVIE, m);
             DetailsFragment fragment = new DetailsFragment();
             fragment.setArguments(args);
-
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.movie_details_container, fragment)
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.movie_details_container, fragment)
                     .commit();
         } else {
             Intent intent = new Intent(MainActivity.this, DetailsActivity.class);
-            intent.putExtra("Movie", m);
+            intent.putExtra(Movie.MOVIE, m);
             startActivity(intent);
         }
     }
@@ -39,23 +37,15 @@ public class MainActivity extends AppCompatActivity implements PostersFragment.O
         setContentView(R.layout.activity_main);
         if (findViewById(R.id.movie_details_container) != null) {
             mTwoPane = true;
-
             if (savedInstanceState == null) {
-                getSupportFragmentManager().beginTransaction()
+                getFragmentManager().beginTransaction()
                         .replace(R.id.movie_details_container, new DetailsFragment())
                         .commit();
             }
         } else {
             mTwoPane = false;
-
         }
     }
-
-    @Override
-    public void onFragmentInteraction(Uri uri) {
-
-    }
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

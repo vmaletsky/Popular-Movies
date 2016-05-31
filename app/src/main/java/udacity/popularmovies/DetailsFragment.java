@@ -1,7 +1,7 @@
 package udacity.popularmovies;
 
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
+import android.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -42,10 +42,12 @@ public class DetailsFragment extends Fragment {
 
         View rootView = inflater.inflate(R.layout.fragment_details, container, false);
         ButterKnife.bind(this, rootView);
-
-        mMovie = getActivity().getIntent().getParcelableExtra("MOVIE");
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
+        Bundle args = getArguments();
+        if (args == null) {
+            return rootView;
+        }
+        mMovie = args.getParcelable(Movie.MOVIE);
+        SimpleDateFormat sdf  = new SimpleDateFormat("yyyy-MM-dd");
         Date releaseDate;
         Calendar c = Calendar.getInstance();
         try {
@@ -61,7 +63,7 @@ public class DetailsFragment extends Fragment {
         releaseDateView.setText(year);
         voteAverageView.setText(mMovie.voteAverage + "/10");
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
-        Picasso.with(getContext()).load(url).into(posterView);
+        Picasso.with(getActivity()).load(url).into(posterView);
 
         return rootView;
     }

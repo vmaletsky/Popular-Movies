@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<fragment android:name="udacity.popularmovies.PostersFragment"
+<fragment xmlns:tools="http://schemas.android.com/tools"
+    android:name="udacity.popularmovies.PostersFragment"
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_height="match_parent"
     android:layout_width="match_parent"
-    android:id="@+id/fragment_posters"
-    />
+    android:id="@+id/fragment_posters" />

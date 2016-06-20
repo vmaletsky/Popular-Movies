@@ -4,6 +4,10 @@ import android.app.Fragment;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.res.Configuration;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -27,11 +31,14 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import udacity.popularmovies.data.MovieContract;
+import udacity.popularmovies.data.MoviesDBHelper;
 
 
 public class PostersFragment extends Fragment {
@@ -51,9 +58,9 @@ public class PostersFragment extends Fragment {
     }
     
     public static PostersFragment newInstance() {
-        
+
         Bundle args = new Bundle();
-        
+
         PostersFragment fragment = new PostersFragment();
         fragment.setArguments(args);
         return fragment;
@@ -62,8 +69,18 @@ public class PostersFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-
-        fetchMovies();
+        Bundle args = getArguments();
+        if (args != null) {
+            if (args.getBoolean(getString(R.string.show_favs_param)) == true) {
+                showFavoriteMovies();
+                return;
+            }
+        }
+        if (isNetworkAvailable()) {
+            fetchMovies();
+        } else {
+            showFavoriteMovies();
+        }
     }
 
     @Override
@@ -79,10 +96,70 @@ public class PostersFragment extends Fragment {
         super.onCreateOptionsMenu(menu, inflater);
     }
 
+    private boolean isNetworkAvailable() {
+        ConnectivityManager connectivityManager
+                = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return activeNetworkInfo != null && activeNetworkInfo.isConnected();
+    }
+
+
+    private void showFavoriteMovies() {
+        MoviesDBHelper dbHelper = new MoviesDBHelper(getActivity());
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String[] cols = {
+                MovieContract.MovieEntry.COLUMN_MOVIE_ID,
+                MovieContract.MovieEntry.COLUMN_TITLE,
+                MovieContract.MovieEntry.COLUMN_RUNTIME,
+                MovieContract.MovieEntry.COLUMN_OVERVIEW,
+                MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+                MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE,
+                MovieContract.MovieEntry.COLUMN_POSTER_PATH
+        };
+        Cursor c = db.query(MovieContract.MovieEntry.TABLE_NAME,
+                cols,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+
+
+        for( c.moveToFirst(); !c.isAfterLast(); c.moveToNext() ) {
+            String movieId      = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_MOVIE_ID));
+            String movieTitle   = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
+            String posterPath   = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH));
+            int runtime         = c.getInt(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RUNTIME));
+            double voteAverage  = c.getDouble(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE));
+            String overview     = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_OVERVIEW));
+            String releaseDate  = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RELEASE_DATE));
+
+            Movie m = new Movie();
+
+            m.id            = movieId;
+            m.title         = movieTitle;
+            m.overview      = overview;
+            m.posterPath    = posterPath;
+            m.releaseDate   = releaseDate;
+            m.runtime       = runtime;
+            m.voteAverage   = voteAverage;
+            Log.v(LOG_TAG_DB, "Favorite movie id = " + m.id + " title = " + m.title);
+            mMoviesAdapter.add(m);
+        }
+
+        db.close();
+
+    }
+
+    private String LOG_TAG_DB = "DB REQUEST";
     private void fetchMovies() {
         FetchMovieData movieData = new FetchMovieData();
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-        String sortBy = prefs.getString(getString(R.string.pref_sort_by_key), getString(R.string.pref_sort_by_rating_value));
+        Bundle bundle = getArguments();
+        String sortBy = getString(R.string.by_popularity_param);
+        if (bundle != null) {
+            sortBy = bundle.getString(getString(R.string.pref_sort_by_key), getString(R.string.by_popularity_param));
+        }
         movieData.execute(sortBy);
     }
 
@@ -105,10 +182,7 @@ public class PostersFragment extends Fragment {
         mMoviesAdapter = new MoviesAdapter(mContext);
         mPostersView.setAdapter(mMoviesAdapter);
 
-        if (getActivity().getResources().getConfiguration().orientation == Configuration.ORIENTATION_PORTRAIT)
-            mPostersView.setLayoutManager(new GridLayoutManager(mContext, 2));
-        else
-            mPostersView.setLayoutManager(new GridLayoutManager(mContext, 4));
+        mPostersView.setLayoutManager(new GridLayoutManager(mContext, 3));
         return rootView;
     }
 

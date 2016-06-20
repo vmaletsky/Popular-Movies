@@ -4,14 +4,13 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity"
     android:layout_height="match_parent">
-    <fragment
+    <FrameLayout
         android:layout_width="0dp"
         android:layout_height="match_parent"
-        android:layout_weight="2"
+        android:layout_weight="3"
         android:id="@+id/fragment_posters"
-        android:name="udacity.popularmovies.PostersFragment"
         >
-    </fragment>
+    </FrameLayout>
 
     <FrameLayout
         android:layout_width="0dp"

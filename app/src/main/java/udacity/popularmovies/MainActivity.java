@@ -35,6 +35,11 @@ public class MainActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
         ButterKnife.bind(this);
         setContentView(R.layout.activity_main);
+        if (savedInstanceState == null) {
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_posters, new PostersFragment())
+                    .commit();
+        }
         if (findViewById(R.id.movie_details_container) != null) {
             mTwoPane = true;
             if (savedInstanceState == null) {
@@ -50,10 +55,30 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
-
-        if (id == R.id.settings) {
-            Intent intent = new Intent(MainActivity.this, SettingsActivity.class);
-            startActivity(intent);
+        PostersFragment fragment = new PostersFragment();
+        if (id == R.id.by_popularity) {
+            Bundle args = new Bundle();
+            args.putString(getString(R.string.pref_sort_by_key), getString(R.string.by_popularity_param));
+            fragment.setArguments(args);
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_posters, fragment)
+                    .commit();
+            return true;
+        } else if (id == R.id.by_rating) {
+            Bundle args = new Bundle();
+            args.putString(getString(R.string.pref_sort_by_key), getString(R.string.by_rating_param));
+            fragment.setArguments(args);
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_posters, fragment)
+                    .commit();
+            return true;
+        } else if (id == R.id.show_favs) {
+            Bundle args = new Bundle();
+            args.putBoolean(getString(R.string.show_favs_param), true);
+            fragment.setArguments(args);
+            getFragmentManager().beginTransaction()
+                    .replace(R.id.fragment_posters, fragment)
+                    .commit();
             return true;
         }
 

@@ -14,6 +14,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@style/AppTheme.Details"
         android:id="@+id/movie_title"
         android:textSize="25sp" />
 
@@ -25,6 +26,7 @@
         <ImageView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            style="@style/AppTheme.Details"
             android:layout_marginEnd="18dp"
             android:id="@+id/poster" />
 
@@ -36,6 +38,7 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/AppTheme.Details"
                 android:fontFamily="sans-serif-condensed"
                 android:textSize="20sp"
                 android:id="@+id/release_date" />
@@ -43,12 +46,19 @@
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/AppTheme.Details"
                 android:id="@+id/runtime" />
 
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/AppTheme.Details"
                 android:id="@+id/vote_average" />
+            
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/button_fav"/>
         </LinearLayout>
 
 
@@ -57,6 +67,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
+        style="@style/AppTheme.Details"
         android:id="@+id/movie_overview" />
 
 </LinearLayout>

@@ -1,6 +1,7 @@
 package udacity.popularmovies;
 
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
@@ -8,7 +9,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
-import android.support.annotation.BinderThread;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,7 +17,6 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
@@ -30,7 +29,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.lang.reflect.Array;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.ParseException;
@@ -43,7 +41,6 @@ import java.util.Date;
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import udacity.popularmovies.data.MovieContract;
-import udacity.popularmovies.data.MovieProvider;
 import udacity.popularmovies.data.MoviesDBHelper;
 
 /**
@@ -63,8 +60,8 @@ public class DetailsFragment extends Fragment {
     @Bind(R.id.poster)              protected ImageView posterView;
     @Bind(R.id.release_date)        protected TextView releaseDateView;
     @Bind(R.id.vote_average)        protected TextView voteAverageView;
-    @Bind(R.id.button_fav)          protected Button btnFavourite;
-    @Bind(R.id.trailers_list)       protected ListView trailersList;
+    @Bind(R.id.button_fav)          protected Button mButtonFavorite;
+    @Bind(R.id.trailers_list)       protected ListView mTrailersListView;
 
     public DetailsFragment() {
     }
@@ -144,27 +141,95 @@ public class DetailsFragment extends Fragment {
         releaseDateView.setText(year);
         voteAverageView.setText(mMovie.voteAverage + "/10");
         if (!isFavourite(mMovie)) {
-            btnFavourite.setText(getString(R.string.mark_fav));
-            btnFavourite.setOnClickListener(new View.OnClickListener() {
+            mButtonFavorite.setText(getString(R.string.mark_fav));
+            mButtonFavorite.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     markFavourite(mMovie);
-                    btnFavourite.setText(getString(R.string.unmark_fav));
+                    mButtonFavorite.setText(getString(R.string.unmark_fav));
                 }
             });
         } else {
-            btnFavourite.setText(getString(R.string.unmark_fav));
-            btnFavourite.setOnClickListener(new View.OnClickListener() {
+            mButtonFavorite.setText(getString(R.string.unmark_fav));
+            mButtonFavorite.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     unmarkFavourite(mMovie);
-                    btnFavourite.setText(getString(R.string.mark_fav));
+                    mButtonFavorite.setText(getString(R.string.mark_fav));
                 }
             });
         }
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
         return rootView;
+    }
+
+    public class TrailersListAdapter implements ListAdapter {
+        @Override
+        public boolean areAllItemsEnabled() {
+            return false;
+        }
+
+        @Override
+        public boolean isEnabled(int position) {
+            return false;
+        }
+
+        @Override
+        public void registerDataSetObserver(DataSetObserver observer) {
+
+        }
+
+        @Override
+        public void unregisterDataSetObserver(DataSetObserver observer) {
+
+        }
+
+        @Override
+        public int getCount() {
+            return mTrailersList.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return mTrailersList.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public boolean hasStableIds() {
+            return false;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            MovieTrailer trailer = mTrailersList.get(position);
+            LayoutInflater inflater = (LayoutInflater) getActivity()
+                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+            View rowView = inflater.inflate(R.layout.trailer_item, parent);
+            TextView nameView = (TextView) rowView.findViewById(R.id.trailer_name);
+            nameView.setText(trailer.name);
+            return null;
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return 0;
+        }
+
+        @Override
+        public int getViewTypeCount() {
+            return 0;
+        }
+
+        @Override
+        public boolean isEmpty() {
+            return false;
+        }
     }
 
     public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailer[]> {
@@ -255,8 +320,8 @@ public class DetailsFragment extends Fragment {
 
             if (movieTrailers != null) {
                 mTrailersList = new ArrayList<>(Arrays.asList(movieTrailers));
-
-                trailersList.setAdapter(adapter);
+                ListAdapter adapter = new TrailersListAdapter();
+                mTrailersListView.setAdapter(adapter);
             }
 
         }

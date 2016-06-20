@@ -2,7 +2,10 @@ package udacity.popularmovies;
 
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
 import android.support.annotation.BinderThread;
@@ -12,12 +15,28 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.ListAdapter;
+import android.widget.ListView;
+import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.reflect.Array;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
 
@@ -34,6 +53,8 @@ public class DetailsFragment extends Fragment {
 
     private Movie mMovie;
 
+    private ArrayList<MovieTrailer> mTrailersList;
+
     private String LOG_TAG = getClass().getSimpleName();
 
     private String LOG_TAG_DB = "DB REQUEST";
@@ -43,6 +64,7 @@ public class DetailsFragment extends Fragment {
     @Bind(R.id.release_date)        protected TextView releaseDateView;
     @Bind(R.id.vote_average)        protected TextView voteAverageView;
     @Bind(R.id.button_fav)          protected Button btnFavourite;
+    @Bind(R.id.trailers_list)       protected ListView trailersList;
 
     public DetailsFragment() {
     }
@@ -143,5 +165,107 @@ public class DetailsFragment extends Fragment {
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
         return rootView;
+    }
+
+    public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailer[]> {
+
+        public final String LOG_TAG = getClass().getSimpleName();
+        @Override
+        protected MovieTrailer[] doInBackground(String... params) {
+            if (params.length < 1) {
+                return null;
+            }
+            HttpURLConnection urlConnection;
+            BufferedReader reader;
+            String moviesJsonStr = null;
+
+
+            try {
+                final String API_KEY_PARAM="api_key";
+                final String baseUrl =
+                        getString(R.string.movie_fetch_base_url) + params[0] + "/videos";
+                Uri builtUri = Uri.parse(baseUrl).buildUpon()
+                        .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
+                        .build();
+                URL url = new URL(builtUri.toString());
+                urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("GET");
+                urlConnection.connect();
+                InputStream inputStream = urlConnection.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if (inputStream == null) {
+                    // Nothing to do.
+                    return null;
+                }
+                reader = new BufferedReader(new InputStreamReader(inputStream));
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
+                    // But it does make debugging a *lot* easier if you print out the completed
+                    // buffer for debugging.
+                    buffer.append(line + "\n");
+                }
+
+                if (buffer.length() == 0) {
+                    // Stream was empty.  No point in parsing.
+                    return null;
+                }
+                moviesJsonStr = buffer.toString();
+            } catch (IOException e) {
+                Log.e(LOG_TAG, "Receiving movies trailers error : " + e);
+            }
+
+            try {
+                return getTrailersFromJson(moviesJsonStr);
+            } catch (JSONException e) {
+                Log.e(LOG_TAG, "Something went wrong with JSON : " + e);
+            }
+            return null;
+        }
+
+        public MovieTrailer[] getTrailersFromJson(String json) throws JSONException {
+            final String RESULTS = "results";
+            final String ID = "id";
+            final String NAME = "name";
+            final String KEY = "key";
+
+            JSONObject videosJson = new JSONObject(json);
+            JSONArray videosArray = videosJson.getJSONArray(RESULTS);
+            MovieTrailer[] videos = new MovieTrailer[videosArray.length()];
+            for (int i=0; i<videosArray.length(); i++) {
+                JSONObject videoObject = videosArray.getJSONObject(i);
+
+                String key      = videoObject.getString(KEY);
+                String name     = videoObject.getString(NAME);
+                String id       = videoObject.getString(ID);
+
+                MovieTrailer v = new MovieTrailer();
+                v.id = id;
+                v.key = key;
+                v.name = name;
+
+                videos[i] = v;
+            }
+            return videos;
+        }
+
+        @Override
+        protected void onPostExecute(MovieTrailer[] movieTrailers) {
+            super.onPostExecute(movieTrailers);
+
+            if (movieTrailers != null) {
+                mTrailersList = new ArrayList<>(Arrays.asList(movieTrailers));
+
+                trailersList.setAdapter(adapter);
+            }
+
+        }
+    }
+
+    public class FetchMovieReview extends AsyncTask {
+        @Override
+        protected MovieReview[] doInBackground(Object[] params) {
+            return null;
+        }
     }
 }

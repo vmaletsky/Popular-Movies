@@ -13,6 +13,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListAdapter;
@@ -37,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
@@ -114,6 +116,11 @@ public class DetailsFragment extends Fragment {
         db.close();
     }
 
+    private void fetchTrailers() {
+        FetchMovieTrailers fetchMovieTrailers = new FetchMovieTrailers();
+        fetchMovieTrailers.execute(mMovie.id);
+    }
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
@@ -159,79 +166,14 @@ public class DetailsFragment extends Fragment {
                 }
             });
         }
+        setListViewHeightBasedOnChildren(mTrailersListView);
+        mTrailersListView.requestLayout();
+        fetchTrailers();
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
         return rootView;
     }
-
-    public class TrailersListAdapter implements ListAdapter {
-        @Override
-        public boolean areAllItemsEnabled() {
-            return false;
-        }
-
-        @Override
-        public boolean isEnabled(int position) {
-            return false;
-        }
-
-        @Override
-        public void registerDataSetObserver(DataSetObserver observer) {
-
-        }
-
-        @Override
-        public void unregisterDataSetObserver(DataSetObserver observer) {
-
-        }
-
-        @Override
-        public int getCount() {
-            return mTrailersList.size();
-        }
-
-        @Override
-        public Object getItem(int position) {
-            return mTrailersList.get(position);
-        }
-
-        @Override
-        public long getItemId(int position) {
-            return 0;
-        }
-
-        @Override
-        public boolean hasStableIds() {
-            return false;
-        }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            MovieTrailer trailer = mTrailersList.get(position);
-            LayoutInflater inflater = (LayoutInflater) getActivity()
-                    .getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            View rowView = inflater.inflate(R.layout.trailer_item, parent);
-            TextView nameView = (TextView) rowView.findViewById(R.id.trailer_name);
-            nameView.setText(trailer.name);
-            return null;
-        }
-
-        @Override
-        public int getItemViewType(int position) {
-            return 0;
-        }
-
-        @Override
-        public int getViewTypeCount() {
-            return 0;
-        }
-
-        @Override
-        public boolean isEmpty() {
-            return false;
-        }
-    }
-
+    
     public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailer[]> {
 
         public final String LOG_TAG = getClass().getSimpleName();
@@ -253,6 +195,7 @@ public class DetailsFragment extends Fragment {
                         .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
                         .build();
                 URL url = new URL(builtUri.toString());
+                Log.v(LOG_TAG, "Trailers url : " + url.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("GET");
                 urlConnection.connect();
@@ -299,11 +242,11 @@ public class DetailsFragment extends Fragment {
             MovieTrailer[] videos = new MovieTrailer[videosArray.length()];
             for (int i=0; i<videosArray.length(); i++) {
                 JSONObject videoObject = videosArray.getJSONObject(i);
-
                 String key      = videoObject.getString(KEY);
                 String name     = videoObject.getString(NAME);
                 String id       = videoObject.getString(ID);
 
+                Log.v(LOG_TAG, "Trailer : " + name);
                 MovieTrailer v = new MovieTrailer();
                 v.id = id;
                 v.key = key;
@@ -320,10 +263,30 @@ public class DetailsFragment extends Fragment {
 
             if (movieTrailers != null) {
                 mTrailersList = new ArrayList<>(Arrays.asList(movieTrailers));
-                ListAdapter adapter = new TrailersListAdapter();
+                TrailerAdapter adapter = new TrailerAdapter(getActivity(), R.layout.trailer_item, mTrailersList);
                 mTrailersListView.setAdapter(adapter);
+                Log.v(LOG_TAG, "Adapter lenght " + adapter.getCount());
             }
 
+        }
+    }
+
+    public class TrailerAdapter extends ArrayAdapter {
+        public TrailerAdapter(Context context, int resource, List list) {
+            super(context, resource, list);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            MovieTrailer trailer = (MovieTrailer) getItem(position);
+            LayoutInflater inflater = getActivity().getLayoutInflater();
+            if (convertView == null) {
+                convertView = inflater.inflate(R.layout.trailer_item, parent, false);
+            }
+            TextView nameView = (TextView) convertView.findViewById(R.id.trailer_name);
+            nameView.setText(trailer.name);
+
+            return convertView;
         }
     }
 

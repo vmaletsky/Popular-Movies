@@ -2,6 +2,7 @@ package udacity.popularmovies;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
@@ -9,6 +10,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
+import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -16,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ListAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -63,7 +66,6 @@ public class DetailsFragment extends Fragment {
     @Bind(R.id.release_date)        protected TextView releaseDateView;
     @Bind(R.id.vote_average)        protected TextView voteAverageView;
     @Bind(R.id.button_fav)          protected Button mButtonFavorite;
-    @Bind(R.id.trailers_list)       protected ListView mTrailersListView;
 
     public DetailsFragment() {
     }
@@ -166,14 +168,13 @@ public class DetailsFragment extends Fragment {
                 }
             });
         }
-        setListViewHeightBasedOnChildren(mTrailersListView);
-        mTrailersListView.requestLayout();
+
         fetchTrailers();
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
         return rootView;
     }
-    
+
     public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailer[]> {
 
         public final String LOG_TAG = getClass().getSimpleName();
@@ -263,9 +264,32 @@ public class DetailsFragment extends Fragment {
 
             if (movieTrailers != null) {
                 mTrailersList = new ArrayList<>(Arrays.asList(movieTrailers));
-                TrailerAdapter adapter = new TrailerAdapter(getActivity(), R.layout.trailer_item, mTrailersList);
-                mTrailersListView.setAdapter(adapter);
-                Log.v(LOG_TAG, "Adapter lenght " + adapter.getCount());
+                LinearLayout layout = (LinearLayout) getActivity().findViewById(R.id.details_layout);
+                for (final MovieTrailer trailer: movieTrailers) {
+                    View trailerItem = getActivity().getLayoutInflater().inflate(R.layout.trailer_item, null);
+                    TextView trailerName = (TextView) trailerItem.findViewById(R.id.trailer_name);
+                    trailerName.setText(trailer.name);
+                    trailerItem.setLayoutParams(
+                            new ViewGroup.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    ViewGroup.LayoutParams.WRAP_CONTENT
+                            )
+                    );
+                    trailerItem.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                            Uri videoURI = Uri.parse("http://www.youtube.com/watch")
+                                    .buildUpon()
+                                    .appendQueryParameter("v", trailer.key)
+                                    .build();
+                            Intent intent = new Intent(Intent.ACTION_VIEW, videoURI);
+                            startActivity(intent);
+                        }
+                    });
+                    layout.addView(trailerItem);
+                }
+
             }
 
         }
@@ -276,11 +300,12 @@ public class DetailsFragment extends Fragment {
             super(context, resource, list);
         }
 
+
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            MovieTrailer trailer = (MovieTrailer) getItem(position);
-            LayoutInflater inflater = getActivity().getLayoutInflater();
+            MovieTrailer trailer = mTrailersList.get(position);
             if (convertView == null) {
+                LayoutInflater inflater = (LayoutInflater) getActivity().getLayoutInflater();
                 convertView = inflater.inflate(R.layout.trailer_item, parent, false);
             }
             TextView nameView = (TextView) convertView.findViewById(R.id.trailer_name);

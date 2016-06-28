@@ -43,4 +43,5 @@
 
     <string name="title_activity_details">Movie Details</string>
     <string name="action_settings">Settings</string>
+    <string name="trailers_caption">Trailers</string>
 </resources>

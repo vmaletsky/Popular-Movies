@@ -45,6 +45,8 @@ import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import retrofit2.Call;
+import retrofit2.Retrofit;
 import udacity.popularmovies.data.MovieContract;
 import udacity.popularmovies.data.MoviesDBHelper;
 
@@ -55,7 +57,7 @@ public class DetailsFragment extends Fragment {
 
     private Movie mMovie;
 
-    private ArrayList<MovieTrailer> mTrailersList;
+    private MovieTrailers mTrailersList;
 
     private String LOG_TAG = getClass().getSimpleName();
 
@@ -169,17 +171,17 @@ public class DetailsFragment extends Fragment {
             });
         }
 
-        fetchTrailers();
+
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
         return rootView;
     }
 
-    public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailer[]> {
+    public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailers> {
 
         public final String LOG_TAG = getClass().getSimpleName();
         @Override
-        protected MovieTrailer[] doInBackground(String... params) {
+        protected MovieTrailers doInBackground(String... params) {
             if (params.length < 1) {
                 return null;
             }
@@ -195,6 +197,16 @@ public class DetailsFragment extends Fragment {
                 Uri builtUri = Uri.parse(baseUrl).buildUpon()
                         .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
                         .build();
+                Retrofit retrofit = new Retrofit.Builder()
+                        .baseUrl(getString(R.string.movie_fetch_base_url))
+                        .build();
+
+
+                OpenMovieDBService movieService = retrofit.create(OpenMovieDBService.class);
+                Call<MovieTrailers> call = movieService.getTrailers(params[0]);
+                mTrailersList = call.execute().body();
+
+                Log.v(LOG_TAG, "Trailers list size : " + mTrailersList.results.size());
                 URL url = new URL(builtUri.toString());
                 Log.v(LOG_TAG, "Trailers url : " + url.toString());
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -232,7 +244,7 @@ public class DetailsFragment extends Fragment {
             return null;
         }
 
-        public MovieTrailer[] getTrailersFromJson(String json) throws JSONException {
+        public MovieTrailers getTrailersFromJson(String json) throws JSONException {
             final String RESULTS = "results";
             final String ID = "id";
             final String NAME = "name";
@@ -240,7 +252,8 @@ public class DetailsFragment extends Fragment {
 
             JSONObject videosJson = new JSONObject(json);
             JSONArray videosArray = videosJson.getJSONArray(RESULTS);
-            MovieTrailer[] videos = new MovieTrailer[videosArray.length()];
+
+            MovieTrailers mt = new MovieTrailers();
             for (int i=0; i<videosArray.length(); i++) {
                 JSONObject videoObject = videosArray.getJSONObject(i);
                 String key      = videoObject.getString(KEY);
@@ -248,24 +261,26 @@ public class DetailsFragment extends Fragment {
                 String id       = videoObject.getString(ID);
 
                 Log.v(LOG_TAG, "Trailer : " + name);
-                MovieTrailer v = new MovieTrailer();
-                v.id = id;
-                v.key = key;
-                v.name = name;
 
-                videos[i] = v;
+                MovieTrailers.Result r = new MovieTrailers.Result();
+
+                r.id = id;
+                r.key = key;
+                r.name = name;
+
+                mt.results.add(r);
             }
-            return videos;
+            return mt;
         }
 
         @Override
-        protected void onPostExecute(MovieTrailer[] movieTrailers) {
+        protected void onPostExecute(MovieTrailers movieTrailers) {
             super.onPostExecute(movieTrailers);
 
             if (movieTrailers != null) {
-                mTrailersList = new ArrayList<>(Arrays.asList(movieTrailers));
+                mTrailersList = movieTrailers;
                 LinearLayout layout = (LinearLayout) getActivity().findViewById(R.id.details_layout);
-                for (final MovieTrailer trailer: movieTrailers) {
+                for (final MovieTrailers.Result trailer: movieTrailers.results) {
                     View trailerItem = getActivity().getLayoutInflater().inflate(R.layout.trailer_item, null);
                     TextView trailerName = (TextView) trailerItem.findViewById(R.id.trailer_name);
                     trailerName.setText(trailer.name);
@@ -295,25 +310,6 @@ public class DetailsFragment extends Fragment {
         }
     }
 
-    public class TrailerAdapter extends ArrayAdapter {
-        public TrailerAdapter(Context context, int resource, List list) {
-            super(context, resource, list);
-        }
-
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            MovieTrailer trailer = mTrailersList.get(position);
-            if (convertView == null) {
-                LayoutInflater inflater = (LayoutInflater) getActivity().getLayoutInflater();
-                convertView = inflater.inflate(R.layout.trailer_item, parent, false);
-            }
-            TextView nameView = (TextView) convertView.findViewById(R.id.trailer_name);
-            nameView.setText(trailer.name);
-
-            return convertView;
-        }
-    }
 
     public class FetchMovieReview extends AsyncTask {
         @Override

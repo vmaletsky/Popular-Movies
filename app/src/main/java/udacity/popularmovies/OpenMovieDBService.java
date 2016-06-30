@@ -15,6 +15,6 @@ public interface OpenMovieDBService {
     Call<List<Movie>> getMovies(@Path("sort_by") String sortBy);
 
     @GET("movie/{id}/videos")
-    Call<List<MovieTrailer>> getTrailers(@Path("id") String movieId);
+    Call<MovieTrailers> getTrailers(@Path("id") String movieId);
 
 }

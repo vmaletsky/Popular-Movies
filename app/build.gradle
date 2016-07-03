@@ -27,6 +27,11 @@ android {
     repositories {
         mavenCentral()
     }
+    repositories {
+        maven {
+            url "https://jitpack.io"
+        }
+    }
 }
 
 dependencies {
@@ -39,4 +44,6 @@ dependencies {
     compile 'com.android.support:design:23.2.1'
     compile 'com.jakewharton:butterknife:7.0.1'
     compile 'com.squareup.retrofit2:retrofit:2.1.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.0.2'
+    compile 'com.github.plusCubed:recycler-fast-scroll:0.3.2'
 }

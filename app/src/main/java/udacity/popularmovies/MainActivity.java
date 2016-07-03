@@ -1,16 +1,19 @@
 package udacity.popularmovies;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
 
 import butterknife.ButterKnife;
 
 
 public class MainActivity extends AppCompatActivity implements
         PostersFragment.Callback {
+
     @Override
     public void onItemSelected(Movie m) {
         if (mTwoPane) {

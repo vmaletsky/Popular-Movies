@@ -1,12 +1,14 @@
 package udacity.popularmovies;
 
+import android.app.Activity;
 import android.os.Bundle;
+import android.support.v4.app.NavUtils;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
-import android.view.View;
-import android.widget.Toast;
 
-public class DetailsActivity extends AppCompatActivity {
+/**
+ * Created by volod on 7/2/2016.
+ */
+public class ReviewActivity extends AppCompatActivity {
     private String LOG_TAG = getClass().getSimpleName();
 
     @Override
@@ -14,22 +16,16 @@ public class DetailsActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
 
-        DetailsFragment fragment = new DetailsFragment();
+        ReviewFragment fragment = new ReviewFragment();
 
         Bundle arguments = new Bundle();
         Movie m = getIntent().getParcelableExtra(Movie.MOVIE);
-
-        if (savedInstanceState != null) {
-            m = savedInstanceState.getParcelable(Movie.MOVIE);
-        }
-
-        setContentView(R.layout.activity_details);
+        setContentView(R.layout.activity_reviews);
         arguments.putParcelable(Movie.MOVIE, m);
 
         fragment.setArguments(arguments);
         getFragmentManager().beginTransaction()
-                .add(R.id.movie_details_container, fragment)
+                .add(R.id.reviews_container, fragment)
                 .commit();
     }
-
 }

@@ -1,52 +1,35 @@
 package udacity.popularmovies;
 
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.database.DataSetObserver;
 import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.app.Fragment;
-import android.text.Layout;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
-import android.widget.ListAdapter;
-import android.widget.ListView;
 import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
-import java.util.List;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
 import retrofit2.Call;
 import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import udacity.popularmovies.data.MovieContract;
 import udacity.popularmovies.data.MoviesDBHelper;
 
@@ -59,7 +42,15 @@ public class DetailsFragment extends Fragment {
 
     private MovieTrailers mTrailersList;
 
+    private MovieReviews mReviewsList;
+
+    private boolean mTwoPane;
+
     private String LOG_TAG = getClass().getSimpleName();
+
+    private LayoutInflater mInflater;
+
+    Retrofit mRetrofit;
 
     private String LOG_TAG_DB = "DB REQUEST";
     @Bind(R.id.movie_title)         protected TextView movieTitle;
@@ -68,6 +59,7 @@ public class DetailsFragment extends Fragment {
     @Bind(R.id.release_date)        protected TextView releaseDateView;
     @Bind(R.id.vote_average)        protected TextView voteAverageView;
     @Bind(R.id.button_fav)          protected Button mButtonFavorite;
+    @Bind(R.id.reviews_caption)     protected TextView mReviewsCaption;
 
     public DetailsFragment() {
     }
@@ -76,7 +68,7 @@ public class DetailsFragment extends Fragment {
         MoviesDBHelper dbHelper = new MoviesDBHelper(getActivity());
         SQLiteDatabase db = dbHelper.getReadableDatabase();
         String[] projection = {MovieContract.MovieEntry.COLUMN_MOVIE_ID};
-        String[] selectionArgs = { m.id };
+        String[] selectionArgs = {String.valueOf( m.id )};
         Cursor c  = db.query(MovieContract.MovieEntry.TABLE_NAME,
                 projection,
                 MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?",
@@ -97,10 +89,8 @@ public class DetailsFragment extends Fragment {
         values.put(MovieContract.MovieEntry.COLUMN_OVERVIEW,        m.overview);
         values.put(MovieContract.MovieEntry.COLUMN_POSTER_PATH,     m.posterPath);
         values.put(MovieContract.MovieEntry.COLUMN_RELEASE_DATE,    m.releaseDate);
-        values.put(MovieContract.MovieEntry.COLUMN_RUNTIME,         m.runtime);
         values.put(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE,    m.voteAverage);
 
-        Log.v(LOG_TAG_DB, "ADDING MOVIE id = " + m.id + " title = " + m.title);
         db.insert(MovieContract.MovieEntry.TABLE_NAME,
                 null,
                 values
@@ -112,18 +102,18 @@ public class DetailsFragment extends Fragment {
     private void unmarkFavourite(Movie m) {
         MoviesDBHelper dbHelper = new MoviesDBHelper(getActivity().getApplicationContext());
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-        Log.v(LOG_TAG_DB, "DELETING MOVIE id = " + m.id + " title : " + m.title);
         db.delete(MovieContract.MovieEntry.TABLE_NAME,
                 MovieContract.MovieEntry.COLUMN_MOVIE_ID + " = ?",
-                new String[] { m.id });
+                new String[] {String.valueOf( m.id ) });
 
         db.close();
     }
 
     private void fetchTrailers() {
         FetchMovieTrailers fetchMovieTrailers = new FetchMovieTrailers();
-        fetchMovieTrailers.execute(mMovie.id);
+        fetchMovieTrailers.execute(String.valueOf( mMovie.id) );
     }
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -132,8 +122,22 @@ public class DetailsFragment extends Fragment {
         View rootView = inflater.inflate(R.layout.fragment_details, container, false);
         ButterKnife.bind(this, rootView);
         Bundle args = getArguments();
+
+        if (getActivity().findViewById(R.id.fragment_posters) == null) {
+            mTwoPane = false;
+        } else {
+            mTwoPane = true;
+        }
+
+        mInflater = getActivity().getLayoutInflater();
+
+        mRetrofit = new Retrofit.Builder()
+                .baseUrl("http://api.themoviedb.org")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
         if (args == null) {
-            return rootView;
+            return null;
         }
         mMovie = args.getParcelable(Movie.MOVIE);
         SimpleDateFormat sdf  = new SimpleDateFormat("yyyy-MM-dd");
@@ -171,6 +175,26 @@ public class DetailsFragment extends Fragment {
             });
         }
 
+        mReviewsCaption.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if (mTwoPane) {
+                    Bundle args = new Bundle();
+                    args.putParcelable(Movie.MOVIE, mMovie);
+                    ReviewFragment fragment = new ReviewFragment();
+                    fragment.setArguments(args);
+                    getFragmentManager().beginTransaction()
+                            .replace(R.id.movie_details_container, fragment, ReviewFragment.REVIEWFRAGMENT_TAG)
+                            .addToBackStack(null)
+                            .commit();
+                } else {
+                    Intent intent = new Intent(getActivity(), ReviewActivity.class);
+                    intent.putExtra(Movie.MOVIE, mMovie);
+                    startActivity(intent);
+                }
+            }
+        });
+        fetchTrailers();
 
         String url = getString(R.string.posters_base_url) + mMovie.posterPath;
         Picasso.with(getActivity()).load(url).into(posterView);
@@ -180,98 +204,26 @@ public class DetailsFragment extends Fragment {
     public class FetchMovieTrailers extends AsyncTask<String, Void, MovieTrailers> {
 
         public final String LOG_TAG = getClass().getSimpleName();
+
         @Override
         protected MovieTrailers doInBackground(String... params) {
             if (params.length < 1) {
                 return null;
             }
-            HttpURLConnection urlConnection;
-            BufferedReader reader;
-            String moviesJsonStr = null;
-
 
             try {
-                final String API_KEY_PARAM="api_key";
-                final String baseUrl =
-                        getString(R.string.movie_fetch_base_url) + params[0] + "/videos";
-                Uri builtUri = Uri.parse(baseUrl).buildUpon()
-                        .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
-                        .build();
-                Retrofit retrofit = new Retrofit.Builder()
-                        .baseUrl(getString(R.string.movie_fetch_base_url))
-                        .build();
 
+                OpenMovieDBService movieService = mRetrofit.create(OpenMovieDBService.class);
+                Call<MovieTrailers> call = movieService.getTrailers(params[0], BuildConfig.TMDB_API_KEY);
+                MovieTrailers m = call.execute().body();
+                return m;
 
-                OpenMovieDBService movieService = retrofit.create(OpenMovieDBService.class);
-                Call<MovieTrailers> call = movieService.getTrailers(params[0]);
-                mTrailersList = call.execute().body();
-
-                Log.v(LOG_TAG, "Trailers list size : " + mTrailersList.results.size());
-                URL url = new URL(builtUri.toString());
-                Log.v(LOG_TAG, "Trailers url : " + url.toString());
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
-
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
-                }
-                moviesJsonStr = buffer.toString();
             } catch (IOException e) {
                 Log.e(LOG_TAG, "Receiving movies trailers error : " + e);
-            }
-
-            try {
-                return getTrailersFromJson(moviesJsonStr);
-            } catch (JSONException e) {
-                Log.e(LOG_TAG, "Something went wrong with JSON : " + e);
             }
             return null;
         }
 
-        public MovieTrailers getTrailersFromJson(String json) throws JSONException {
-            final String RESULTS = "results";
-            final String ID = "id";
-            final String NAME = "name";
-            final String KEY = "key";
-
-            JSONObject videosJson = new JSONObject(json);
-            JSONArray videosArray = videosJson.getJSONArray(RESULTS);
-
-            MovieTrailers mt = new MovieTrailers();
-            for (int i=0; i<videosArray.length(); i++) {
-                JSONObject videoObject = videosArray.getJSONObject(i);
-                String key      = videoObject.getString(KEY);
-                String name     = videoObject.getString(NAME);
-                String id       = videoObject.getString(ID);
-
-                Log.v(LOG_TAG, "Trailer : " + name);
-
-                MovieTrailers.Result r = new MovieTrailers.Result();
-
-                r.id = id;
-                r.key = key;
-                r.name = name;
-
-                mt.results.add(r);
-            }
-            return mt;
-        }
 
         @Override
         protected void onPostExecute(MovieTrailers movieTrailers) {
@@ -279,9 +231,9 @@ public class DetailsFragment extends Fragment {
 
             if (movieTrailers != null) {
                 mTrailersList = movieTrailers;
-                LinearLayout layout = (LinearLayout) getActivity().findViewById(R.id.details_layout);
+                LinearLayout layout = (LinearLayout) getActivity().findViewById(R.id.trailers_container);
                 for (final MovieTrailers.Result trailer: movieTrailers.results) {
-                    View trailerItem = getActivity().getLayoutInflater().inflate(R.layout.trailer_item, null);
+                    View trailerItem = mInflater.inflate(R.layout.trailer_item, null);
                     TextView trailerName = (TextView) trailerItem.findViewById(R.id.trailer_name);
                     trailerName.setText(trailer.name);
                     trailerItem.setLayoutParams(
@@ -311,10 +263,5 @@ public class DetailsFragment extends Fragment {
     }
 
 
-    public class FetchMovieReview extends AsyncTask {
-        @Override
-        protected MovieReview[] doInBackground(Object[] params) {
-            return null;
-        }
-    }
+
 }

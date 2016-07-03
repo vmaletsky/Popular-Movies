@@ -30,7 +30,12 @@
             android:name=".DetailsActivity"
             android:label="@string/title_activity_details"
             android:parentActivityName=".MainActivity"
+            android:launchMode="singleTop"
             android:theme="@style/AppTheme" />
+        <activity android:name=".ReviewActivity"
+            android:label="Reviews"
+            android:parentActivityName=".DetailsActivity"
+            android:theme="@style/AppTheme"/>
 
         <provider
             android:authorities="@string/content_authority"

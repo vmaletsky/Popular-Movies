@@ -13,6 +13,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v7.widget.GridLayoutManager;
+import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +21,8 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import com.pluscubed.recyclerfastscroll.RecyclerFastScroller;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -37,6 +40,10 @@ import java.util.Arrays;
 
 import butterknife.Bind;
 import butterknife.ButterKnife;
+import retrofit2.Call;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
 import udacity.popularmovies.data.MovieContract;
 import udacity.popularmovies.data.MoviesDBHelper;
 
@@ -48,10 +55,15 @@ public class PostersFragment extends Fragment {
 
     private String LOG_TAG = getClass().getSimpleName();
     @Bind(R.id.posters_view)    protected RecyclerView mPostersView;
+    @Bind(R.id.recycler_fast_scroller)  protected RecyclerFastScroller mRecyclerFastScroller;
 
     private MoviesAdapter mMoviesAdapter;
 
+
+
     private Context mContext;
+
+    private Retrofit mRetrofit;
 
     public PostersFragment() {
         // Required empty public constructor
@@ -77,7 +89,7 @@ public class PostersFragment extends Fragment {
             }
         }
         if (isNetworkAvailable()) {
-            fetchMovies();
+            fetchMovies("1");
         } else {
             showFavoriteMovies();
         }
@@ -110,7 +122,6 @@ public class PostersFragment extends Fragment {
         String[] cols = {
                 MovieContract.MovieEntry.COLUMN_MOVIE_ID,
                 MovieContract.MovieEntry.COLUMN_TITLE,
-                MovieContract.MovieEntry.COLUMN_RUNTIME,
                 MovieContract.MovieEntry.COLUMN_OVERVIEW,
                 MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
                 MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE,
@@ -127,10 +138,9 @@ public class PostersFragment extends Fragment {
 
 
         for( c.moveToFirst(); !c.isAfterLast(); c.moveToNext() ) {
-            String movieId      = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_MOVIE_ID));
+            int movieId      = c.getInt(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_MOVIE_ID));
             String movieTitle   = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_TITLE));
             String posterPath   = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_POSTER_PATH));
-            int runtime         = c.getInt(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RUNTIME));
             double voteAverage  = c.getDouble(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE));
             String overview     = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_OVERVIEW));
             String releaseDate  = c.getString(c.getColumnIndex(MovieContract.MovieEntry.COLUMN_RELEASE_DATE));
@@ -142,9 +152,8 @@ public class PostersFragment extends Fragment {
             m.overview      = overview;
             m.posterPath    = posterPath;
             m.releaseDate   = releaseDate;
-            m.runtime       = runtime;
             m.voteAverage   = voteAverage;
-            Log.v(LOG_TAG_DB, "Favorite movie id = " + m.id + " title = " + m.title);
+
             mMoviesAdapter.add(m);
         }
 
@@ -153,14 +162,14 @@ public class PostersFragment extends Fragment {
     }
 
     private String LOG_TAG_DB = "DB REQUEST";
-    private void fetchMovies() {
+    private void fetchMovies(String page) {
         FetchMovieData movieData = new FetchMovieData();
         Bundle bundle = getArguments();
         String sortBy = getString(R.string.by_popularity_param);
         if (bundle != null) {
             sortBy = bundle.getString(getString(R.string.pref_sort_by_key), getString(R.string.by_popularity_param));
         }
-        movieData.execute(sortBy);
+        movieData.execute(sortBy, page);
     }
 
     @Override
@@ -168,121 +177,62 @@ public class PostersFragment extends Fragment {
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_posters, container, false);
+        mContext = rootView.getContext();
         ButterKnife.bind(this, rootView);
         mPostersView.setHasFixedSize(true);
         mPostersView.setItemViewCacheSize(10);
-        mPostersView.addOnScrollListener(new RecyclerView.OnScrollListener() {
-            @Override
-            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
-                super.onScrolled(recyclerView, dx, dy);
 
-            }
-        });
-        mContext = rootView.getContext();
+        final GridLayoutManager mLayoutManager = new GridLayoutManager(mContext, 3);
+        mPostersView.setLayoutManager(mLayoutManager);
         mMoviesAdapter = new MoviesAdapter(mContext);
         mPostersView.setAdapter(mMoviesAdapter);
 
-        mPostersView.setLayoutManager(new GridLayoutManager(mContext, 3));
+
+        mRecyclerFastScroller.attachRecyclerView(mPostersView);
+
+        mPostersView.addOnScrollListener(new EndlessRecyclerOnScrollListener(mLayoutManager) {
+            @Override
+            public void onLoadMore(int current_page) {
+                fetchMovies(String.valueOf(current_page+1));
+                Log.v(LOG_TAG, "Loading page " + (current_page+1));
+            }
+        });
+        mRetrofit = new Retrofit.Builder()
+                .baseUrl("http://api.themoviedb.org")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
         return rootView;
     }
 
-    class FetchMovieData extends AsyncTask<String, Void, Movie[]> {
+    class FetchMovieData extends AsyncTask<String, Void, MoviePage> {
         String TAG = this.getClass().getSimpleName();
 
-
-        public Movie[] getMoviesDataFromJson(String json) throws JSONException {
-            final String PAGE = "page";
-            final String RESULTS = "results";
-            final String POSTER_PATH = "poster_path";
-            final String ID = "id";
-            final String OVERVIEW = "overview";
-            final String TITLE = "title";
-            final String RELEASE_DATE = "release_date";
-            final String VOTE_AVERAGE = "vote_average";
-
-            JSONObject moviesJson = new JSONObject(json);
-            JSONArray moviesArray = moviesJson.getJSONArray(RESULTS);
-            Movie[] movies = new Movie[moviesArray.length()];
-            for (int i=0; i<moviesArray.length(); i++) {
-                JSONObject movieObject = moviesArray.getJSONObject(i);
-                String id = movieObject.getString(ID);
-                String posterPath = movieObject.getString(POSTER_PATH);
-                String title = movieObject.getString(TITLE);
-                String overview = movieObject.getString(OVERVIEW);
-                String releaseDate = movieObject.getString(RELEASE_DATE);
-                double voteAverage = movieObject.getDouble(VOTE_AVERAGE);
-
-                Movie m = new Movie();
-                m.id = id;
-                m.posterPath = posterPath;
-                m.title = title;
-                m.overview = overview;
-                m.releaseDate = releaseDate;
-                m.voteAverage = voteAverage;
-                m.runtime = 0;
-                movies[i] = m;
-            }
-            return movies;
-        }
-
         @Override
-        public Movie[] doInBackground(String... params) {
+        public MoviePage doInBackground(String... params) {
             if (params.length < 1) {
                 return null;
             }
-            HttpURLConnection urlConnection;
-            BufferedReader reader;
-            String moviesJsonStr = null;
 
 
             try {
-                final String API_KEY_PARAM="api_key";
-                final String baseUrl =
-                        getString(R.string.movie_fetch_base_url) + params[0];
-                Uri builtUri = Uri.parse(baseUrl).buildUpon()
-                        .appendQueryParameter(API_KEY_PARAM, BuildConfig.TMDB_API_KEY)
-                        .build();
-                URL url = new URL(builtUri.toString());
-                urlConnection = (HttpURLConnection) url.openConnection();
-                urlConnection.setRequestMethod("GET");
-                urlConnection.connect();
-                InputStream inputStream = urlConnection.getInputStream();
-                StringBuffer buffer = new StringBuffer();
-                if (inputStream == null) {
-                    // Nothing to do.
-                    return null;
-                }
-                reader = new BufferedReader(new InputStreamReader(inputStream));
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    // Since it's JSON, adding a newline isn't necessary (it won't affect parsing)
-                    // But it does make debugging a *lot* easier if you print out the completed
-                    // buffer for debugging.
-                    buffer.append(line + "\n");
-                }
+                OpenMovieDBService movieService = mRetrofit.create(OpenMovieDBService.class);
+                Call<MoviePage> call = movieService.getMovies(params[0], BuildConfig.TMDB_API_KEY, params[1]);
 
-                if (buffer.length() == 0) {
-                    // Stream was empty.  No point in parsing.
-                    return null;
-                }
-                moviesJsonStr = buffer.toString();
+                MoviePage moviePage = call.execute().body();
+                return moviePage;
+
             } catch (IOException e) {
                 Log.e(TAG, "Receiving movies list error : " + e);
             }
 
-            try {
-                return getMoviesDataFromJson(moviesJsonStr);
-            } catch (JSONException e) {
-                Log.e(TAG, "Something went wrong with JSON : " + e);
-            }
             return null;
         }
 
         @Override
-        protected void onPostExecute(Movie[] movies) {
+        protected void onPostExecute(MoviePage movies) {
             if (movies != null) {
-                ArrayList<Movie> moviesList = new ArrayList<>(Arrays.asList(movies));
-                mMoviesAdapter.addAll(moviesList);
+                mMoviesAdapter.addAll(movies.results);
                 mMoviesAdapter.notifyDataSetChanged();
                 super.onPostExecute(movies);
             }
